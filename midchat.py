@@ -7,6 +7,7 @@ import faiss
 import numpy as np
 import torch
 from transformers import AutoModel, AutoTokenizer, logging, pipeline
+from utils import readSources
 
 # parse commmand line arguments
 parser = argparse.ArgumentParser(description="Answer questions about MIDREGs from the US Naval Academy using Llama 3.2-1B Instruct and RAG!\n\nThis script will automatically use a GPU if one is available.")
@@ -36,7 +37,7 @@ logging.set_verbosity_error()
 # Set constant memory with role, task, and rules
 memory = f"Role: You work at the United States Naval Academy, and you specialize in answering questions about the rules and regulations. All of your answers are related to Naval Academy Midshipmen. You are always confident in your answers.\n"
 memory += f"Task: Carefully analyze each of the passages that you are given from MIDREGs as context to help you answer the question.\n"
-memory += f"Rules: Not all of the context that you will be given will be correct. Do not repeat the exact context when you give your asnwer. Answer the question in at most two sentences with a maximum total length of {args.max_tokens} words. Your answer must end in a complete sentence. Do not repeat yourself. Do not provide any follow-up questions or answers.\n\n"
+memory += f"Rules: Not all of the context that you will be given will be correct. Do not repeat the exact context when you give your asnwer. Answer the question in at most two sentences. Your answer must end in a complete sentence. Do not repeat yourself. Do not provide any follow-up questions or answers.\n\n"
 
 # few-shot prompting
 memory += f"Question: When is end of liberty formation?\nAnswer: End of Liberty Formation typically occurs on Sunday at 1800.\n\n"
@@ -44,21 +45,6 @@ memory += f"Question: Can midshipmen drink in Bancroft Hall?\nAnswer: No. Midshi
 memory += f"Question: Can a 4/C wear civvies?\nAnswer: No. A 4/C cannot wear civilian attire unless they are on leave away from the Naval Academy.\n\n"
 memory += f"Question: Can I talk on the phone when I walk in uniform?\nAnswer: Yes. You may talk on the phone while walking in uniform as long as you are able to lower the phone and render a salute.\n\n"
 memory += f"Question: Who can wear civvies on liberty?\nAnswer: 1/C and 2/C midshipmen may wear civilian attire while on town liberty.\n\n"
-
-def clean_source(text):
-    # get rid of all newline chars
-    text = re.sub(r'\n', ' ', text)
-    
-    # get rid of all tab chars
-    text = re.sub(r'\t', ' ', text)
-    
-    # get rid of many consecutive spaces
-    text = re.sub(r" {2,}", " ", text)
-
-    text = text.strip()
-
-    return text
-
 
 def cache_faiss(chunks, fname="cache.faiss"):
     index_file = fname
@@ -83,17 +69,19 @@ def cache_faiss(chunks, fname="cache.faiss"):
     
     return index, chunk_embeds
 
-def load_text(path: str, max_len=40) -> list:
-    with open(path, 'r') as file:
-        text = clean_source(file.read()) 
-        chunks = text.split(".")
-        # text = text.split(" ")
-        # chunks = [" ".join(text[i:i+max_len]) for i in range(0, len(text), max_len)]
+def load_text() -> list:
+    files = readSources()
+    chunks = []
+    
+    for f in files:
+        with open(f, 'r') as file:
+            text = file.read()
+            chunks += text.split("\n\n")
 
     return chunks
 
 def gen_embeds(text: str):
-    inputs = tokenizer(text, return_tensors="pt").to(device)
+    inputs = tokenizer(text, return_tensors="pt", truncation=True).to(device)
     outputs = model(**inputs)
     return outputs.last_hidden_state[:, 0, :]
 
@@ -105,8 +93,7 @@ def find_most_rel(query, index):
 
 def clean_answer(text: str) -> str:
     text = text.replace("Answer: ", "")
-
-    # got rid of all of the punctuation stuff that used to be here
+    text = text.split("\n\n")[0]
 
     return text    
 
@@ -163,7 +150,7 @@ if __name__ == "__main__":
         print("Bye!")
         quit()
         
-    chunks = load_text("data/midregs.txt")
+    chunks = load_text()
     
     # Loop until user types "quit"
     while "quit" not in user_query.lower():

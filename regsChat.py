@@ -28,15 +28,22 @@ else:
 
 # trying new embeddings
 tokenizer = AutoTokenizer.from_pretrained("princeton-nlp/sup-simcse-roberta-large")
-model = AutoModel.from_pretrained("princeton-nlp/sup-simcse-roberta-large").to(device)
+model = AutoModel.from_pretrained("princeton-nlp/sup-simcse-roberta-large", device_map="auto")
 
-generator = pipeline("text-generation", model="meta-llama/Llama-3.2-1B-Instruct", device=device)
+generator = pipeline("text-generation", model="meta-llama/Llama-3.2-3B-Instruct", device_map="auto")
 logging.set_verbosity_error()
 
 # Set constant memory with role, task, and rules
 memory = f"Role: You work at the United States Naval Academy, and you specialize in answering questions about the rules and regulations. All of your answers are related to Naval Academy Midshipmen. You are always confident in your answers.\n"
 memory += f"Task: Carefully analyze each of the passages that you are given from MIDREGs as context to help you answer the question.\n"
-memory += f"Rules: Pick the context that you think is the most related to the question that was asked. Do not repeat the exact context or give your answer in the form of a context. Your answer must be concise and direct. It must be {args.max_tokens} words or less long and given in complete sentences.\n"
+memory += f"Rules: Not all of the context that you will be given will be correct. Do not repeat the exact context when you give your asnwer. Answer the question in at most two sentences with a maximum total length of {args.max_tokens} words. Your answer must end in a complete sentence. Do not repeat yourself. Do not provide any follow-up questions or answers.\n\n"
+
+# few-shot prompting
+memory += f"Question: When is end of liberty formation?\nAnswer: End of Liberty Formation typically occurs on Sunday at 1800.\n\n"
+memory += f"Question: Can midshipmen drink in Bancroft Hall?\nAnswer: No. Midshipmen are never allowed to drink in Bancroft Hall.\n\n"
+memory += f"Question: Can a 4/C wear civvies?\nAnswer: No. A 4/C cannot wear civilian attire unless they are on leave away from the Naval Academy.\n\n"
+memory += f"Question: Can I talk on the phone when I walk in uniform?\nAnswer: Yes. You may talk on the phone while walking in uniform as long as you are able to lower the phone and render a salute.\n\n"
+memory += f"Question: Who can wear civvies on liberty?\nAnswer: 1/C and 2/C midshipmen may wear civilian attire while on town liberty.\n\n"
 
 def clean_source(text):
     # get rid of all newline chars
@@ -79,8 +86,9 @@ def cache_faiss(chunks, fname="cache.faiss"):
 def load_text(path: str, max_len=40) -> list:
     with open(path, 'r') as file:
         text = clean_source(file.read()) 
-        text = text.split(" ")
-        chunks = [" ".join(text[i:i+max_len]) for i in range(0, len(text), max_len)]
+        chunks = text.split(".")
+        # text = text.split(" ")
+        # chunks = [" ".join(text[i:i+max_len]) for i in range(0, len(text), max_len)]
 
     return chunks
 
@@ -150,7 +158,7 @@ if __name__ == "__main__":
     # Load text from MIDREGs
     # Get the user's input, check for EOF or blank input
     try:
-        user_query = input("Question> ")
+        user_query = input("Input> ")
     except EOFError:
         print("Bye!")
         quit()
@@ -159,9 +167,9 @@ if __name__ == "__main__":
     
     # Loop until user types "quit"
     while "quit" not in user_query.lower():
-        print(f"\nAnswer> {rag(chunks, user_query)}\n")
+        print(f"\n{rag(chunks, user_query)}\n")
         try:
-            user_query = input("Question> ")
+            user_query = input("Input> ")
         except EOFError:
             print("Bye!")
             

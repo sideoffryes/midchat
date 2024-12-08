@@ -14,6 +14,16 @@ MIDCHAT implements a retrieval augmented generation (RAG) approach by adding sni
 
 ## Running MIDCHAT
 
+### Environment
+
+#### Conda
+
+```bash
+$ conda create --name <env name> --file <requirements.txt>
+```
+
+### Running with python3
+
 ```bash
 python3 midchat.py
 ```

@@ -14,12 +14,15 @@ MIDCHAT implements a retrieval augmented generation (RAG) approach by adding sni
 
 ## Running MIDCHAT
 
-### Environment
+### Environment and Requirements
+
+This project relies on various libraries from pytorch, NVIDIA, and FAISS to function and support GPU integration. See the below instructions for setting up an environment with all of the correct dependencies.
 
 #### Conda
 
 ```bash
-$ conda create --name <env name> --file <requirements.txt>
+$ conda create -n <env name> -c pytorch -c nvidia faiss-gpu -c conda-forge pytorch torchvision torchaudio pytorch-cuda transformers pypdf accelerate
+$ conda activate <env name>
 ```
 
 ### Running with python3

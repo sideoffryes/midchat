@@ -1,0 +1,16 @@
+name: midchat_gpu
+channels:
+- pytorch
+- nvidia
+- rapidsai
+- conda-forge
+dependencies:
+- pytorch
+- torchvision
+- torchaudio
+- pytorch-cuda=12.4
+- faiss-gpu-raft=1.9.0
+- transformers
+- accelerate
+- numpy
+- pypdf

@@ -20,9 +20,10 @@ This project relies on various libraries from pytorch, NVIDIA, and FAISS to func
 
 #### Conda
 
-```bash
-$ conda create -n <env name> -c pytorch -c nvidia faiss-gpu -c conda-forge pytorch torchvision torchaudio pytorch-cuda transformers pypdf accelerate
-$ conda activate <env name>
+```console
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
 ```
 
 ### Running with python3

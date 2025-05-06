@@ -1,4 +1,6 @@
 cache.*
 __pycache__
-*.pdf
-*.txt
+.venv
+accelerate
+data/source/*
+data/text/*
